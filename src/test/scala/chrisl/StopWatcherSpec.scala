@@ -1,5 +1,6 @@
 package chrisl
 
+import akka.actor.{ Actor, Props, SupervisorStrategy }
 import akka.actor.SupervisorStrategy.Stop
 import akka.actor.{ActorRef, ActorSystem, Kill, PoisonPill}
 import akka.testkit.{TestActorRef, TestKit}
@@ -25,7 +26,7 @@ class StopWatcherSpec extends TestKit(ActorSystem("TestSystem")) with FlatSpecLi
     it should s"detect $name" in {
 
       val watcher = TestActorRef(new StopWatcher())
-      val stopper = TestActorRef(new Stopper(watcher))
+      val stopper = TestActorRef(Props(new Stopper(watcher)), TestActorRef(new StopWatcherSpec.StoppingSupervisor))
 
       eventually { watcher.underlyingActor.watching should be(true) }
 
@@ -34,5 +35,12 @@ class StopWatcherSpec extends TestKit(ActorSystem("TestSystem")) with FlatSpecLi
       eventually { watcher.underlyingActor.spottedTheStop should be(true) }
 
     }
+  }
+}
+
+object StopWatcherSpec {
+  class StoppingSupervisor extends Actor {
+    override val supervisorStrategy = SupervisorStrategy.stoppingStrategy
+    def receive = Actor.emptyBehavior
   }
 }
